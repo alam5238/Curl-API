@@ -327,6 +327,137 @@ function handleDelete() {
 
 ```
 
+## If You use on each activity or single activity then use this code. Its for `Mainactivity` as like all you make.
+```
+public class MainActivity extends AppCompatActivity {
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private TextView responseTextView; // TextView to display the response
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+
+        responseTextView = findViewById(R.id.response_text_view); // Assuming you have a TextView in your layout
+
+        // Send the HTTP POST request
+         sendPOSTRequest("https://nazmulalamshuvo.42web.io/curl/api.php");
+
+    }
+
+//Use this method for fetching data by Curl on POST method
+
+    private void sendPOSTRequest(String urlString) {
+        executor.execute(() -> {
+            try {
+            
+                // Set up SSL to bypass certificate validation (equivalent to cURL --insecure)
+                TrustManager[] trustAllCerts = new TrustManager[]{
+                        new X509TrustManager() {
+                            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                                return null;
+                            }
+
+                            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
+
+                            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
+                        }
+                };
+
+                // Install the all-trusting trust manager
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+
+                // Create a hostname verifier that doesn't verify the hostname
+                HostnameVerifier allHostsValid = (hostname, session) -> true;
+                HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+
+
+                // Open connection
+                URL url = new URL(urlString);
+                HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+                //connection.setRequestMethod("GET");
+
+                //if GET request then delete those two line
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+
+
+
+                // Set headers
+                connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+                connection.setRequestProperty("Accept-Language", "en-US,en;q=0.9,bn;q=0.8");
+                connection.setRequestProperty("Cache-Control", "max-age=0");
+                connection.setRequestProperty("Connection", "keep-alive");
+                connection.setRequestProperty("Cookie", "__test=20f6fc07209afd885bd518ce6e3b108d");
+                connection.setRequestProperty("Upgrade-Insecure-Requests", "1");
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36");
+
+                // Example post data (can be modified based on your needs)
+                String postData = "name=John&age=25";
+
+                // Send request data
+                OutputStream os = connection.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                // Read the response
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+
+                    // Parse the JSON response
+                    String jsonResponse = response.toString();
+                   JSONObject jsonObject = new JSONObject(jsonResponse);
+
+                    // Example: Extract a value from the JSON (adjust based on your JSON structure)
+                    String name = jsonObject.getString("data");
+                    JSONObject data = new JSONObject(name);
+
+                   int age = data.getInt("age");
+                   String na = data.getString("name");
+
+                    // Post the result to the main thread
+                    handler.post(() -> {
+                        responseTextView.setText("Name: "+na+" Age: "+age);
+                        Log.d("RESPONSE", jsonObject.toString());
+                    });
+                 
+                } else {
+                    handler.post(() -> responseTextView.setText("Error: " + responseCode));
+                }
+
+                connection.disconnect();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                handler.post(() -> responseTextView.setText("Failed to get response."));
+            }
+        });
+    }
+
+
+
+```
+
 Details::
 
 To create a simple Java method that can handle both `GET` and `POST` requests and return a JSON response, you'll need to:
