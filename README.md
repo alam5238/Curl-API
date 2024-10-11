@@ -27,29 +27,33 @@ public class HttpHelper {
         HttpURLConnection connection = null;
         try {
 
-            // Set up SSL to bypass certificate validation (equivalent to cURL --insecure)
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509TrustManager() {
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return null;
+//Check Url https or http. if https then below code needed otherwise its not needed in http.if you can delete it for http.
+            if(isHttps(urlString)){
+
+                // Set up SSL to bypass certificate validation (equivalent to cURL --insecure)
+                TrustManager[] trustAllCerts = new TrustManager[]{
+                        new X509TrustManager() {
+                            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                                return null;
+                            }
+
+                            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
+
+                            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
                         }
+                };
 
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        }
+                // Install the all-trusting trust manager
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
 
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        }
-                    }
-            };
-
-            // Install the all-trusting trust manager
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-
-            // Create a hostname verifier that doesn't verify the hostname
-            HostnameVerifier allHostsValid = (hostname, session) -> true;
-            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+                // Create a hostname verifier that doesn't verify the hostname
+                HostnameVerifier allHostsValid = (hostname, session) -> true;
+                HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+            }
 
             // Create a URL object
             URL url = new URL(urlString);
@@ -112,6 +116,18 @@ public class HttpHelper {
             }
         }
     }
+
+//Both Method use for URL check if SSL or NOT
+       // Method to check if the URL uses HTTPS
+        public static boolean isHttps(String url) {
+            return url.toLowerCase().startsWith("https://");
+        }
+
+        // Method to check if the URL uses HTTP
+        public static boolean isHttp(String url) {
+            return url.toLowerCase().startsWith("http://");
+        }
+
 }
 
 ```
