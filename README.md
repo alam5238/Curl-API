@@ -618,7 +618,7 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
-If you create this Image fetching Method then use this code. this code also download and save Image also. Just uncomment some code and save image from localstroage. (N.B: Use permission for use local stroage).
+If you create this Image fetching Method on Single Activity or any Activity then use this code. this code also download and save Image also. Just uncomment some code and save image from localstroage. (N.B: Use permission for use local stroage).
 ```
 package com.nazmulalam.curltest;
 
@@ -809,6 +809,66 @@ public class MainActivity extends AppCompatActivity {
 
     }
 }
+```
+
+=============================================
+Importance Notice ::::
+----------------------------
+This script use Requested server response Header to fetching data using user-agent and cache token. So we need those
+In this code we will get user-agent & cache token for fetching. 
+=============================================
+```
+        WebView wed = findViewById(R.id.wed);
+  
+        wed.getSettings().setJavaScriptEnabled(true);
+        wed.setWebViewClient(new WebViewClient(){
+
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                // Capture request headers
+                Map<String, String> requestHeaders = request.getRequestHeaders();
+
+                // Get the User-Agent header
+                String userAgent = requestHeaders.get("User-Agent");
+                if (userAgent != null) {
+                    Log.d("User-Agent", "User-Agent: " + userAgent); //here is the user agent
+                } else {
+                    Log.d("User-Agent", "User-Agent header not found");
+                }
+
+                // Continue loading the request
+                // If you need to modify headers or return a custom response, you can do so here.
+                return super.shouldInterceptRequest(view, request);
+            }
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+              
+                String cookies = CookieManager.getInstance().getCookie(url);
+                Log.d("Cookies", "All the cookies for this URL: " + cookies);
+
+                // Check if __test cookie exists
+                if (cookies != null && cookies.contains("__test")) {
+                    // You can now work with the __test cookie value
+                    String testCookie = extractTestCookie(cookies);
+                    Log.d("TestCookie", "__test cookie value: " + testCookie); //here is the cache token
+                }
+            }
+
+            // Extract the __test cookie value from the cookie string
+            private String extractTestCookie(String cookies) {
+                String[] cookieArray = cookies.split(";");
+                for (String cookie : cookieArray) {
+                    if (cookie.trim().startsWith("__test=")) {
+                        return cookie.split("=")[1];
+                    }
+                }
+                return null;
+            }
+        });
+
+        wed.loadUrl("http://nazmulalamshuvo.42web.io/curl/");
 ```
 Details::
 
