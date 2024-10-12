@@ -458,6 +458,358 @@ public class MainActivity extends AppCompatActivity {
 
 ```
 
+# Singleton Image Fetcher using Curl API
+Create a java file named `HttpImageHelper` and write below code. Its fetch image from url and return it as Bitmap image file.
+```
+package com.nazmulalam.curltest;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Log;
+
+import java.io.BufferedInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+public class HttpImageHelper {
+
+    public static Bitmap fetchImage(String urlString, String saveFilePath){
+        HttpURLConnection connection = null;
+        InputStream inputStream = null;
+        FileOutputStream fileOutputStream = null;
+        Bitmap image = null;
+        try {
+
+            // Set up SSL to bypass certificate validation (equivalent to cURL --insecure)
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
+
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+
+            // Install the all-trusting trust manager
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+
+            // Create a hostname verifier that doesn't verify the hostname
+            HostnameVerifier allHostsValid = (hostname, session) -> true;
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+
+
+            // Create URL object
+            URL url = new URL(urlString);
+
+            // Open connection
+            connection = (HttpURLConnection) url.openConnection();
+
+            // Set request method to GET
+            connection.setRequestMethod("GET");
+
+            // Set the required headers (including User-Agent)
+            connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+            // connection.setRequestProperty("Accept-Language", "en-US,en;q=0.9,bn;q=0.8");
+            // connection.setRequestProperty("Connection", "keep-alive");
+            connection.setRequestProperty("Cookie", "__test=0467b5866e1eb831a4c1e4d76b59f25c"); // Add your cookie here
+            //  connection.setRequestProperty("Sec-Fetch-Dest", "document");
+            //   connection.setRequestProperty("Sec-Fetch-Mode", "navigate");
+            //   connection.setRequestProperty("Sec-Fetch-Site", "none");
+            // connection.setRequestProperty("Sec-Fetch-User", "?1");
+            connection.setRequestProperty("Upgrade-Insecure-Requests", "1");
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 15; sdk_gphone64_x86_64 Build/AE3A.240806.005; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.100 Mobile Safari/537.36");
+            //   connection.setRequestProperty("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not=A?Brand\";v=\"8\", \"Chromium\";v=\"129\"");
+            // connection.setRequestProperty("sec-ch-ua-mobile", "?0");
+            //  connection.setRequestProperty("sec-ch-ua-platform", "\"Windows\"");
+
+            // Get response code
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) { // Success
+
+                // Open input stream to read image data
+                inputStream = new BufferedInputStream(connection.getInputStream());
+                Log.d("ACCD","SUCCESS" + inputStream.toString());
+                image = BitmapFactory.decodeStream(inputStream);
+                // Open output stream to save the image
+                //  fileOutputStream = new FileOutputStream(saveFilePath);
+
+                // Buffer for image data
+//                    byte[] buffer = new byte[1024];
+//                    int bytesRead;
+//                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+//                        fileOutputStream.write(buffer, 0, bytesRead);
+//                    }
+
+                // Post success message to the main thread (UI update)
+
+//                handler.post(() ->{
+//                    imageView.setImageBitmap(image);
+//                    Log.d("ACCD","SUCCESS");
+//
+//                });
+
+            } else {
+                // Post failure message to the main thread (UI update)
+             //   handler.post(() ->  Log.d("ACCD","Faield" + responseCode));
+            }
+
+        } catch (Exception e) {
+            // Handle the exception
+            e.printStackTrace();
+          //  handler.post(() ->  Log.d("ACCD","error"+ e.getMessage()));
+
+        } finally {
+            try {
+                if (inputStream != null) inputStream.close();
+                if (fileOutputStream != null) fileOutputStream.close();
+                if (connection != null) connection.disconnect();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        return image;
+    }
+}
+
+
+```
+Now, Call the Method on Any activity, As a example on Myactivity that code look like this:
+```
+public class MainActivity extends AppCompatActivity {
+    // Create a background thread executor
+     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // Create a handler for the main thread
+    private static final Handler handler = new Handler(Looper.getMainLooper());
+
+  @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
+        });
+  imageView = findViewById(R.id.imageView);
+  String imageUrl = "https://nazmulalamshuvo.42web.io/sla/logo.png";
+
+        executor.execute(()->{
+            Bitmap image = HttpImageHelper.fetchImage(imageUrl,"null");
+            handler.post(() -> {
+                imageView.setImageBitmap(image);
+                Log.d("RETURNIMG", "Image set");
+            });
+        });
+    }
+}
+```
+If you create this Image fetching Method then use this code. this code also download and save Image also. Just uncomment some code and save image from localstroage. (N.B: Use permission for use local stroage).
+```
+package com.nazmulalam.curltest;
+
+import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+import android.webkit.CookieManager;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import androidx.activity.EdgeToEdge;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+public class MainActivity extends AppCompatActivity {
+    // Create a background thread executor
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // Create a handler for the main thread
+    private static final Handler handler = new Handler(Looper.getMainLooper());
+  
+
+    Bitmap imageBitmap;
+    static ImageView imageView;
+    @SuppressLint("MissingInflatedId")
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+      
+        imageView = findViewById(R.id.imageView);
+
+        // Example URL (replace with the URL you provided)
+        String imageUrl = "https://nazmulalamshuvo.42web.io/sla/logo.png";
+
+        // File path where the image will be saved
+        String saveFilePath = "cat03.jpg";
+
+        // Call the method to fetch and save the image
+       fetchImageWithHeaders(imageUrl, saveFilePath);
+
+
+
+    }
+
+    // Method to fetch image from a URL (GET or POST) and save it to a file
+    public static void fetchImageWithHeaders(String urlString, String saveFilePath) {
+        // Run the network operation in the background
+        executor.execute(() -> {
+            HttpURLConnection connection = null;
+            InputStream inputStream = null;
+            FileOutputStream fileOutputStream = null;
+            Bitmap image;
+            try {
+
+                // Set up SSL to bypass certificate validation (equivalent to cURL --insecure)
+                TrustManager[] trustAllCerts = new TrustManager[]{
+                        new X509TrustManager() {
+                            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                                return null;
+                            }
+
+                            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
+
+                            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                            }
+                        }
+                };
+
+                // Install the all-trusting trust manager
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+
+                // Create a hostname verifier that doesn't verify the hostname
+                HostnameVerifier allHostsValid = (hostname, session) -> true;
+                HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+
+
+                // Create URL object
+                URL url = new URL(urlString);
+
+                // Open connection
+                connection = (HttpURLConnection) url.openConnection();
+
+                // Set request method to GET
+                connection.setRequestMethod("GET");
+
+                // Set the required headers (including User-Agent)
+                connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+               // connection.setRequestProperty("Accept-Language", "en-US,en;q=0.9,bn;q=0.8");
+               // connection.setRequestProperty("Connection", "keep-alive");
+                connection.setRequestProperty("Cookie", "__test=0467b5866e1eb831a4c1e4d76b59f25c"); // Add your cookie here
+              //  connection.setRequestProperty("Sec-Fetch-Dest", "document");
+             //   connection.setRequestProperty("Sec-Fetch-Mode", "navigate");
+             //   connection.setRequestProperty("Sec-Fetch-Site", "none");
+               // connection.setRequestProperty("Sec-Fetch-User", "?1");
+                connection.setRequestProperty("Upgrade-Insecure-Requests", "1");
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 15; sdk_gphone64_x86_64 Build/AE3A.240806.005; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.100 Mobile Safari/537.36");
+             //   connection.setRequestProperty("sec-ch-ua", "\"Google Chrome\";v=\"129\", \"Not=A?Brand\";v=\"8\", \"Chromium\";v=\"129\"");
+               // connection.setRequestProperty("sec-ch-ua-mobile", "?0");
+              //  connection.setRequestProperty("sec-ch-ua-platform", "\"Windows\"");
+
+                // Get response code
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) { // Success
+
+                    // Open input stream to read image data
+                    inputStream = new BufferedInputStream(connection.getInputStream());
+                    Log.d("ACCD","SUCCESS" + inputStream.toString());
+                    image = BitmapFactory.decodeStream(inputStream);
+                    // Open output stream to save the image
+                  //  fileOutputStream = new FileOutputStream(saveFilePath);
+
+                    // Buffer for image data
+//                    byte[] buffer = new byte[1024];
+//                    int bytesRead;
+//                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+//                        fileOutputStream.write(buffer, 0, bytesRead);
+//                    }
+
+                    // Post success message to the main thread (UI update)
+                    handler.post(() ->{
+                        imageView.setImageBitmap(image);
+                        Log.d("ACCD","SUCCESS");
+
+                    });
+
+                } else {
+                    // Post failure message to the main thread (UI update)
+                    handler.post(() ->  Log.d("ACCD","Faield" + responseCode));
+                }
+
+            } catch (Exception e) {
+                // Handle the exception
+                e.printStackTrace();
+                handler.post(() ->  Log.d("ACCD","error"+ e.getMessage()));
+
+            } finally {
+                try {
+                    if (inputStream != null) inputStream.close();
+                    if (fileOutputStream != null) fileOutputStream.close();
+                    if (connection != null) connection.disconnect();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+    }
+}
+```
 Details::
 
 To create a simple Java method that can handle both `GET` and `POST` requests and return a JSON response, you'll need to:
